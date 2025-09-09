@@ -53,6 +53,7 @@ func (h *MyHandler) GetTaskFunc(w http.ResponseWriter, r *http.Request) {
 func (h *MyHandler) DeleteTaskFunc(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
+		//значение для гориллыz
 		if vars := mux.Vars(r); vars != nil {
 			id = vars["id"]
 		}
