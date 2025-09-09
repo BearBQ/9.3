@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"9.3/models"
+	"github.com/gorilla/mux"
 )
 
 type MyHandler struct {
@@ -51,6 +52,15 @@ func (h *MyHandler) GetTaskFunc(w http.ResponseWriter, r *http.Request) {
 
 func (h *MyHandler) DeleteTaskFunc(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
+	if id == "" {
+		if vars := mux.Vars(r); vars != nil {
+			id = vars["id"]
+		}
+	}
+	if id == "" {
+		http.Error(w, "ID not found", http.StatusBadRequest)
+		return
+	}
 	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)

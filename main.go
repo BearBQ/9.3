@@ -3,9 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"9.3/handlers"
 	"9.3/models"
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -30,15 +32,38 @@ func main() {
 			Done:  false},
 	}
 	//версия на стандартном http
-	mux := http.NewServeMux()
-	handler := handlers.NewMyHandler(taskDesk)
-	mux.HandleFunc("GET /", handler.Hello)
-	mux.HandleFunc("GET /tasks", handler.GetTaskFunc)
-	mux.HandleFunc("POST /tasks", handler.PostTaskFunc)
-	mux.HandleFunc("DELETE /tasks/{id}", handler.DeleteTaskFunc)
-	err := http.ListenAndServe(":8080", mux)
-	if err != nil {
-		log.Fatalf("http server error: %v", err)
-	}
+	go func() {
+		mux := http.NewServeMux()
+		handler := handlers.NewMyHandler(taskDesk)
+		mux.HandleFunc("GET /", handler.Hello)
+		mux.HandleFunc("GET /tasks", handler.GetTaskFunc)
+		mux.HandleFunc("POST /tasks", handler.PostTaskFunc)
+		mux.HandleFunc("DELETE /tasks/{id}", handler.DeleteTaskFunc)
+		log.Println("server http in go routine is started")
+		err := http.ListenAndServe(":8080", mux)
+		if err != nil {
+			log.Fatalf("http server error: %v", err)
+		}
+	}()
 
+	//реализую через гориллу
+	r := mux.NewRouter()
+	srv := &http.Server{
+		Addr: "0.0.0.0:8081",
+		// Good practice to set timeouts to avoid Slowloris attacks.
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      r, // Pass our instance of gorilla/mux in.
+
+	}
+	handler := handlers.NewMyHandler(taskDesk)
+	r.HandleFunc("/", handler.Hello).Methods("GET")
+	r.HandleFunc("/tasks", handler.GetTaskFunc).Methods("GET")
+	r.HandleFunc("/tasks", handler.PostTaskFunc).Methods("POST")
+	r.HandleFunc("/tasks/{id}", handler.DeleteTaskFunc).Methods("DELETE")
+	log.Println("server gorilla is started")
+	if err := srv.ListenAndServe(); err != nil {
+		log.Println(err)
+	}
 }
