@@ -32,8 +32,10 @@ func main() {
 	//версия на стандартном http
 	mux := http.NewServeMux()
 	handler := handlers.NewMyHandler(taskDesk)
+	mux.HandleFunc("GET /", handler.Hello)
 	mux.HandleFunc("GET /tasks", handler.GetTaskFunc)
 	mux.HandleFunc("POST /tasks", handler.PostTaskFunc)
+	mux.HandleFunc("DELETE /tasks/{id}", handler.DeleteTaskFunc)
 	err := http.ListenAndServe(":8080", mux)
 	if err != nil {
 		log.Fatalf("http server error: %v", err)
