@@ -68,8 +68,19 @@ func main() {
 	r.HandleFunc("/tasks", handler.PostTaskFunc).Methods("POST")
 	r.HandleFunc("/tasks/{id}", handler.DeleteTaskFunc).Methods("DELETE")
 
-	// Swagger UI route
+	// Swagger JSON с правильной кодировкой
+	r.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		http.ServeFile(w, r, "./docs/swagger.json")
+	}).Methods("GET")
+
+	// Swagger UI - обслуживаем статические файлы
 	r.PathPrefix("/swagger/").Handler(http.StripPrefix("/swagger/", http.FileServer(http.Dir("./docs"))))
+
+	// Редирект с корня swagger на index.html
+	r.HandleFunc("/swagger", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/swagger/index.html", http.StatusMovedPermanently)
+	})
 
 	log.Println("server gorilla is started")
 	log.Println("Swagger UI available at: http://localhost:8081/swagger/index.html")
