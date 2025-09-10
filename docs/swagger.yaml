@@ -1,0 +1,120 @@
+definitions:
+  models.ErrorResponse:
+    properties:
+      code:
+        description: Код ошибки
+        example: 400
+        type: integer
+      message:
+        description: Сообщение об ошибке
+        example: Invalid input
+        type: string
+    type: object
+  models.SuccessResponse:
+    properties:
+      message:
+        description: Сообщение об успехе
+        example: Task was deleted successfully
+        type: string
+    type: object
+  models.Task:
+    properties:
+      done:
+        type: boolean
+      id:
+        type: integer
+      title:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      description: Возвращает описание доступных endpoints
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Описание API
+          schema:
+            type: string
+      summary: Информация об API
+      tags:
+      - info
+  /tasks:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех задач
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Task'
+            type: array
+      summary: Получить все задачи
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую задачу в список
+      parameters:
+      - description: Данные задачи
+        in: body
+        name: task
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "415":
+          description: Unsupported Media Type
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Создать задачу
+      tags:
+      - tasks
+  /tasks/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет задачу по указанному ID
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Удалить задачу
+      tags:
+      - tasks
+swagger: "2.0"
