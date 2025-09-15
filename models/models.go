@@ -2,8 +2,8 @@ package models
 
 // Task представляет модель задачи
 type Task struct {
-	ID    uint   `json:"id"`
-	Title string `json:"title"`
+	ID    uint   `json:"id" validate:"required,min=1"`
+	Title string `json:"title" validate:"required,min=3,max=255"`
 	Done  bool   `json:"done"`
 }
 

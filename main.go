@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	taskDesk := []models.Task{
+	taskDesk := &[]models.Task{
 		{ID: 1,
 			Title: "first task",
 			Done:  true},

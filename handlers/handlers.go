@@ -7,14 +7,15 @@ import (
 	"strconv"
 
 	"9.3/models"
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
 
 type MyHandler struct {
-	tasks []models.Task
+	tasks *[]models.Task
 }
 
-func NewMyHandler(tasks []models.Task) *MyHandler {
+func NewMyHandler(tasks *[]models.Task) *MyHandler {
 	return &MyHandler{tasks: tasks}
 }
 
@@ -43,8 +44,7 @@ func (h *MyHandler) PostTaskFunc(w http.ResponseWriter, r *http.Request) {
 	var data map[string]string
 
 	err := json.NewDecoder(r.Body).Decode(&data)
-	title, ok := data["title"]
-	if !ok || title == "" || err != nil {
+	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(models.ErrorResponse{
@@ -53,15 +53,28 @@ func (h *MyHandler) PostTaskFunc(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	id := len(h.tasks) + 1
+	id := len(*h.tasks) + 1
 
 	newTask := models.Task{
 
 		ID:    uint(id),
-		Title: title,
+		Title: data["title"],
 		Done:  false,
 	}
-	h.tasks = append(h.tasks, newTask)
+
+	//Добавляю валидацию структуры
+	validate := validator.New()
+	if err := validate.Struct(newTask); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		json.NewEncoder(w).Encode(models.ErrorResponse{
+			Code:    http.StatusUnprocessableEntity,
+			Message: "Validation failed" + err.Error(),
+		})
+		return
+	}
+
+	*h.tasks = append(*h.tasks, newTask)
 	w.Header().Set("Content-type", "application/json")
 	json.NewEncoder(w).Encode(newTask)
 }
@@ -117,9 +130,9 @@ func (h *MyHandler) DeleteTaskFunc(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	for i, val := range h.tasks {
+	for i, val := range *h.tasks {
 		if val.ID == (uint(idUint)) {
-			h.tasks = append(h.tasks[:i], h.tasks[i+1:]...)
+			*h.tasks = append((*h.tasks)[:i], (*h.tasks)[i+1:]...)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(models.SuccessResponse{
