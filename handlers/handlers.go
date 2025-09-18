@@ -32,12 +32,7 @@ func NewMyHandler(tasks *[]models.Task) *MyHandler {
 // @Router /tasks [post]
 func (h *MyHandler) PostTaskFunc(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-type") != "application/json" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		json.NewEncoder(w).Encode(models.ErrorResponse{
-			Code:    http.StatusUnsupportedMediaType,
-			Message: "Expected json",
-		})
+		SendError(w, http.StatusUnsupportedMediaType, "Expected json")
 		return
 	}
 
@@ -45,12 +40,7 @@ func (h *MyHandler) PostTaskFunc(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(models.ErrorResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Invalid json",
-		})
+		SendError(w, http.StatusBadRequest, "Invalid json")
 		return
 	}
 	id := len(*h.tasks) + 1
@@ -65,12 +55,7 @@ func (h *MyHandler) PostTaskFunc(w http.ResponseWriter, r *http.Request) {
 	//Добавляю валидацию структуры
 	validate := validator.New()
 	if err := validate.Struct(newTask); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(models.ErrorResponse{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "Validation failed" + err.Error(),
-		})
+		SendError(w, http.StatusUnprocessableEntity, "validation failed"+err.Error())
 		return
 	}
 
@@ -112,22 +97,12 @@ func (h *MyHandler) DeleteTaskFunc(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if id == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(models.ErrorResponse{
-			Code:    http.StatusBadRequest,
-			Message: "ID not found",
-		})
+		SendError(w, http.StatusBadRequest, "ID not found")
 		return
 	}
 	idUint, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(models.ErrorResponse{
-			Code:    http.StatusBadRequest,
-			Message: "Invalid ID format",
-		})
+		SendError(w, http.StatusBadRequest, "invalid ID format")
 		return
 	}
 	for i, val := range *h.tasks {
@@ -141,12 +116,8 @@ func (h *MyHandler) DeleteTaskFunc(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(models.ErrorResponse{
-		Code:    http.StatusNotFound,
-		Message: "Task not found",
-	})
+
+	SendError(w, http.StatusNotFound, "Task not found")
 
 }
 
@@ -162,4 +133,14 @@ func (h *MyHandler) Hello(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(message))
+}
+
+// SendError отправляет ошибку клиенту
+func SendError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(models.ErrorResponse{
+		Code:    status,
+		Message: message,
+	})
 }
