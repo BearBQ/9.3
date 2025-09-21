@@ -39,6 +39,7 @@ func main() {
 		mux.HandleFunc("GET /tasks", handler.GetTaskFunc)
 		mux.HandleFunc("POST /tasks", handler.PostTaskFunc)
 		mux.HandleFunc("DELETE /tasks/{id}", handler.DeleteTaskFunc)
+		mux.HandleFunc("PUT /tasks/{id}", handler.PutTask)
 		mux.HandleFunc("GET /swagger/", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "http://localhost:8081/swagger/", http.StatusMovedPermanently)
 		})
@@ -66,7 +67,7 @@ func main() {
 	r.HandleFunc("/", handler.Hello).Methods("GET")
 	r.HandleFunc("/tasks", handler.GetTaskFunc).Methods("GET")
 	r.HandleFunc("/tasks", handler.PostTaskFunc).Methods("POST")
-	r.HandleFunc("/tasks/{id}", handler.DeleteTaskFunc).Methods("DELETE")
+	r.HandleFunc("/tasks/{id}", handler.DeleteTaskFunc).Methods("PUT")
 
 	// Swagger JSON с правильной кодировкой
 	r.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {

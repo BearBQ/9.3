@@ -129,7 +129,7 @@ func (h *MyHandler) DeleteTaskFunc(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string "Описание API"
 // @Router / [get]
 func (h *MyHandler) Hello(w http.ResponseWriter, r *http.Request) {
-	message := "GET /tasks → возвращает список задач.\nPOST /tasks → добавляет задачу.\nDELETE /tasks/{id} → удаляет задачу"
+	message := "GET /tasks → возвращает список задач.\nPOST /tasks → добавляет задачу.\nDELETE /tasks/{id} → удаляет задачу.\nPUT /tasks/{id} → изменяет задачу"
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(message))
@@ -143,4 +143,95 @@ func SendError(w http.ResponseWriter, status int, message string) {
 		Code:    status,
 		Message: message,
 	})
+}
+
+// PutTask обновляет задачу по ID
+// @Summary Обновить задачу
+// @Description Обновляет существующую задачу по указанному ID
+// @Tags tasks
+// @Accept  json
+// @Produce  json
+// @Param   id path int true "ID задачи"
+// @Param   task body object true "Данные для обновления" schema={"type":"object","properties":{"title":{"type":"string","example":"Обновленная задача"},"done":{"type":"boolean","example":true}}}
+// @Success 200 {object} models.Task
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 415 {object} models.ErrorResponse
+// @Failure 422 {object} models.ErrorResponse
+// @Router /tasks/{id} [put]
+func (h *MyHandler) PutTask(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-type") != "application/json" {
+		SendError(w, http.StatusUnsupportedMediaType, "Expected json")
+		return
+	}
+
+	var data map[string]string
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "Invalid json")
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		if vars := mux.Vars(r); vars != nil {
+			id = vars["id"]
+		}
+	}
+	if id == "" {
+		SendError(w, http.StatusBadRequest, "ID not found in URL")
+		return
+	}
+
+	idUint, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	if data["title"] == "" {
+		SendError(w, http.StatusBadRequest, "Title is required")
+		return
+	}
+
+	if data["done"] == "" {
+		SendError(w, http.StatusBadRequest, "Done field is required")
+		return
+	}
+
+	var boolData bool
+	boolData, err = strconv.ParseBool(data["done"])
+	if err != nil {
+		SendError(w, http.StatusBadRequest, "Invalid done value, expected true/false")
+		return
+	}
+
+	newTask := models.Task{
+		ID:    uint(idUint),
+		Title: data["title"],
+		Done:  boolData,
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(newTask); err != nil {
+		SendError(w, http.StatusUnprocessableEntity, "Validation failed: "+err.Error())
+		return
+	}
+
+	found := false
+	for i := range *h.tasks {
+		if (*h.tasks)[i].ID == uint(idUint) {
+			(*h.tasks)[i] = newTask
+			found = true
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(newTask)
+			return
+		}
+	}
+
+	if !found {
+		SendError(w, http.StatusNotFound, "Task not found")
+	}
 }
